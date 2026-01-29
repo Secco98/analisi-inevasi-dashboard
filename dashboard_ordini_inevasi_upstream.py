@@ -68,28 +68,32 @@ def text_positions_for_bars(values, thresh_ratio=0.08):
 
 # ========================= LOAD DATA =========================
 @st.cache_data(show_spinner=False)
-def load_data(file, is_excel=False):
+def load_data_from_bytes(file_bytes, filename):
+    is_excel = filename.lower().endswith(".xlsx")
+
     if is_excel:
-        df = pd.read_excel(file)
+        df = pd.read_excel(BytesIO(file_bytes))
     else:
-        raw = file.read()
-        enc = chardet.detect(raw[:20000])['encoding']
-        file.seek(0)
+        enc = chardet.detect(file_bytes[:20000])['encoding']
         df = pd.read_csv(
-            file,
+            BytesIO(file_bytes),
             sep=None,
             engine="python",
             encoding=enc,
             on_bad_lines="skip"
         )
+
     df.columns = df.columns.str.strip()
     return df
-    
+
+file_bytes = uploaded_file.getvalue()
+
 try:
-    df_raw = load_data(uploaded_file, FILE_IS_EXCEL)
+    df_raw = load_data_from_bytes(file_bytes, uploaded_file.name)
 except Exception as e:
     st.error(f"Errore nel caricamento file: {e}")
     st.stop()
+
 
 # ========================= PRE-PROCESSING AND CLEANING =========================
 df = df_raw.copy()
